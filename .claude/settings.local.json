@@ -9,7 +9,9 @@
       "Bash(rm -rf _tmp_preserve)",
       "Bash(rm -f App.tsx index.ts)",
       "Bash(ls \"/Users/jeffreyford/Documents/dev/projects/movie_app/app/\\(tabs\\)/\")",
-      "Bash(chmod -R u+w /Users/jeffreyford/Documents/dev/projects/movie_app/_scaffold)"
+      "Bash(chmod -R u+w /Users/jeffreyford/Documents/dev/projects/movie_app/_scaffold)",
+      "Bash(npx tsc:*)",
+      "Bash(chmod -R u+w /Users/jeffreyford/Documents/dev/projects/movie_app/node_modules)"
     ]
   }
 }
