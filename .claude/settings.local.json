@@ -11,7 +11,9 @@
       "Bash(ls \"/Users/jeffreyford/Documents/dev/projects/movie_app/app/\\(tabs\\)/\")",
       "Bash(chmod -R u+w /Users/jeffreyford/Documents/dev/projects/movie_app/_scaffold)",
       "Bash(npx tsc:*)",
-      "Bash(chmod -R u+w /Users/jeffreyford/Documents/dev/projects/movie_app/node_modules)"
+      "Bash(chmod -R u+w /Users/jeffreyford/Documents/dev/projects/movie_app/node_modules)",
+      "Bash(npx expo:*)",
+      "Bash(npx jest:*)"
     ]
   }
 }
