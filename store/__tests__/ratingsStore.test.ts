@@ -18,7 +18,7 @@ const anotherMovie: Movie = {
 };
 
 beforeEach(() => {
-  useRatingsStore.setState({ ratings: {}, comparisons: [], onboardingComplete: false });
+  useRatingsStore.setState({ ratings: {}, comparisons: [], movies: {}, onboardingComplete: false });
 });
 
 describe('rateMovie', () => {

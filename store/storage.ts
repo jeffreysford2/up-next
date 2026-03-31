@@ -1,11 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { RatingsMap, Comparison } from '../types';
+import { RatingsMap, Comparison, Movie } from '../types';
 
 const STORE_KEY = 'up_next_store';
 
 export type PersistedState = {
   ratings: RatingsMap;
   comparisons: Comparison[];
+  movies: Record<number, Movie>;
   onboardingComplete: boolean;
 };
 
