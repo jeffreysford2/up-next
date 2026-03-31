@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
-import { Bucket, Movie } from '../../types';
+import { Bucket } from '../../types';
 import { useRatingsStore } from '../../store/ratingsStore';
 import { useRecommendationsStore } from '../../store/recommendationsStore';
 import { buildRecommendationQueue } from '../../utils/recommendations';
@@ -14,13 +14,11 @@ export default function DiscoverScreen() {
 
   const rateMovie = useRatingsStore((s) => s.rateMovie);
 
-  const { currentMovie, advance, setQueue, queue, cursor } = useRecommendationsStore((s) => ({
-    currentMovie: s.currentMovie,
-    advance: s.advance,
-    setQueue: s.setQueue,
-    queue: s.queue,
-    cursor: s.cursor,
-  }));
+  const currentMovie = useRecommendationsStore((s) => s.currentMovie);
+  const advance = useRecommendationsStore((s) => s.advance);
+  const setQueue = useRecommendationsStore((s) => s.setQueue);
+  const queue = useRecommendationsStore((s) => s.queue);
+  const cursor = useRecommendationsStore((s) => s.cursor);
 
   const movie = currentMovie();
 
