@@ -4,6 +4,7 @@ export type Movie = {
   poster_url: string | null;
   year: number | null;
   genres: string[];
+  popularity?: number; // TMDB global popularity score, used for recommendation ranking
 };
 
 export type Bucket = 'loved' | 'liked' | 'disliked' | 'unseen';

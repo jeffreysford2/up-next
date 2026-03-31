@@ -38,6 +38,7 @@ function mapMovie(raw: any): Movie {
     poster_url: raw.poster_path ? `${IMAGE_BASE}${raw.poster_path}` : null,
     year: raw.release_date ? parseInt(raw.release_date.slice(0, 4), 10) : null,
     genres,
+    popularity: raw.popularity ?? undefined,
   };
 }
 
