@@ -3,7 +3,7 @@ import { FeedSource } from '../types';
 
 // Ephemeral — not persisted. Feed resets on app open.
 
-const SOURCE_ORDER: FeedSource[] = ['trending', 'popular', 'top_rated'];
+const SOURCE_ORDER: FeedSource[] = ['trending', 'now_playing', 'popular_recent'];
 
 type State = {
   source: FeedSource;
@@ -27,7 +27,7 @@ export const useFeedStore = create<State & Actions>((set, get) => ({
 
   nextSource: () => {
     const current = get().source;
-    const next = SOURCE_ORDER[SOURCE_ORDER.indexOf(current) + 1] ?? 'top_rated';
+    const next = SOURCE_ORDER[SOURCE_ORDER.indexOf(current) + 1] ?? 'popular_recent';
     set({ source: next, page: 1 });
   },
 

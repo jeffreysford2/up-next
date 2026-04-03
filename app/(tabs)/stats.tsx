@@ -1,4 +1,5 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useRatingsStore } from '../../store/ratingsStore';
 import {
   getCountsByBucket,
@@ -8,6 +9,7 @@ import {
   getLowConfidenceMovies,
 } from '../../utils/stats';
 import StatsChart from '../../components/StatsChart';
+import { useTheme } from '../../hooks/useTheme';
 
 const BUCKET_COLORS: Record<string, string> = {
   loved: '#a855f7',
@@ -23,14 +25,16 @@ export default function StatsScreen() {
   const ratings = useRatingsStore((s) => s.ratings);
   const comparisons = useRatingsStore((s) => s.comparisons);
   const movies = useRatingsStore((s) => s.movies);
+  const c = useTheme();
+  const router = useRouter();
 
   const counts = getCountsByBucket(ratings);
 
   if (counts.total === 0) {
     return (
-      <View style={styles.emptyContainer}>
-        <Text style={styles.emptyTitle}>No stats yet</Text>
-        <Text style={styles.emptySubtext}>
+      <View style={[styles.emptyContainer, { backgroundColor: c.bg }]}>
+        <Text style={[styles.emptyTitle, { color: c.text }]}>No stats yet</Text>
+        <Text style={[styles.emptySubtext, { color: c.textFaint }]}>
           Rate some movies on the Rate tab and your stats will appear here.
         </Text>
       </View>
@@ -42,11 +46,16 @@ export default function StatsScreen() {
   const mostCompared = getMostCompared(comparisons, movies);
   const lowConfidence = getLowConfidenceMovies(ratings, comparisons, movies);
 
+  // All scored (non-unseen) movies sorted by score descending
+  const rankings = Object.values(ratings)
+    .filter((r) => r.score != null && r.bucket !== 'unseen')
+    .sort((a, b) => (b.score ?? 0) - (a.score ?? 0));
+
   const bucketData = [
-    { label: 'Loved', value: counts.loved, color: BUCKET_COLORS.loved },
-    { label: 'Liked', value: counts.liked, color: BUCKET_COLORS.liked },
-    { label: 'Disliked', value: counts.disliked, color: BUCKET_COLORS.disliked },
-    { label: 'Unseen', value: counts.unseen, color: BUCKET_COLORS.unseen },
+    { label: 'Loved',   value: counts.loved,    color: BUCKET_COLORS.loved    },
+    { label: 'Liked',   value: counts.liked,    color: BUCKET_COLORS.liked    },
+    { label: 'Disliked',value: counts.disliked, color: BUCKET_COLORS.disliked },
+    { label: 'Unseen',  value: counts.unseen,   color: BUCKET_COLORS.unseen   },
   ].filter((d) => d.value > 0);
 
   const scoreChartData = scoreDist.map((bin) => ({
@@ -55,56 +64,78 @@ export default function StatsScreen() {
     color: SCORE_COLOR,
   }));
 
-  const genreChartData = topGenres.map((g) => ({
-    label: g.genre,
-    value: g.avgScore,
-    color: GENRE_COLOR,
-  }));
-
   return (
     <ScrollView
-      style={styles.scroll}
+      style={[styles.scroll, { backgroundColor: c.bg }]}
       contentContainerStyle={styles.content}
       showsVerticalScrollIndicator={false}
     >
-      <Text style={styles.screenTitle}>Stats</Text>
+      <Text style={[styles.screenTitle, { color: c.text }]}>Stats</Text>
 
-      {/* --- Overview --- */}
-      <Section title={`${counts.total} movies rated`}>
+      <Section title={`${counts.total} movies rated`} color={c.textMuted}>
         <StatsChart data={bucketData} showValues />
       </Section>
 
-      {/* --- Score Distribution --- */}
+      {rankings.length > 0 && (
+        <Section title="Your rankings" color={c.textMuted}>
+          {rankings.map((rating, index) => {
+            const movie = movies[rating.movie_id];
+            const bucketColor = BUCKET_COLORS[rating.bucket];
+            return (
+              <Pressable
+                key={rating.movie_id}
+                style={({ pressed }) => [
+                  styles.rankRow,
+                  { borderBottomColor: c.border },
+                  pressed && { backgroundColor: c.surface2 },
+                ]}
+                onPress={() => router.push(`/movie/${rating.movie_id}`)}
+              >
+                <Text style={[styles.rankNum, { color: c.textDim }]}>
+                  {index + 1}
+                </Text>
+                <Text style={[styles.rankTitle, { color: c.textSoft }]} numberOfLines={1}>
+                  {movie?.title ?? `Movie ${rating.movie_id}`}
+                </Text>
+                <Text style={[styles.rankScore, { color: bucketColor }]}>
+                  {rating.score!.toFixed(1)}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </Section>
+      )}
+
       {scoreDist.some((b) => b.count > 0) && (
-        <Section title="Score distribution">
+        <Section title="Score distribution" color={c.textMuted}>
           <StatsChart data={scoreChartData} showValues />
         </Section>
       )}
 
-      {/* --- Top Genres --- */}
       {topGenres.length > 0 && (
-        <Section title="Top genres by avg score">
+        <Section title="Top genres by avg score" color={c.textMuted}>
           {topGenres.map((g) => (
             <View key={g.genre} style={styles.genreRow}>
-              <Text style={styles.genreLabel} numberOfLines={1}>
+              <Text style={[styles.genreLabel, { color: c.textSoft }]} numberOfLines={1}>
                 {g.genre}
               </Text>
-              <Text style={styles.genreScore}>{g.avgScore.toFixed(1)}</Text>
-              <Text style={styles.genreCount}>({g.count})</Text>
+              <Text style={[styles.genreScore, { color: GENRE_COLOR }]}>
+                {g.avgScore.toFixed(1)}
+              </Text>
+              <Text style={[styles.genreCount, { color: c.textDim }]}>({g.count})</Text>
             </View>
           ))}
         </Section>
       )}
 
-      {/* --- Most Compared --- */}
       {mostCompared.length > 0 && (
-        <Section title="Most compared">
+        <Section title="Most compared" color={c.textMuted}>
           {mostCompared.map((entry) => (
-            <View key={entry.movie.tmdb_id} style={styles.listRow}>
-              <Text style={styles.listTitle} numberOfLines={1}>
+            <View key={entry.movie.tmdb_id} style={[styles.listRow, { borderBottomColor: c.border }]}>
+              <Text style={[styles.listTitle, { color: c.textSoft }]} numberOfLines={1}>
                 {entry.movie.title}
               </Text>
-              <Text style={styles.listMeta}>
+              <Text style={[styles.listMeta, { color: c.textDim }]}>
                 {entry.count} comparison{entry.count !== 1 ? 's' : ''}
               </Text>
             </View>
@@ -112,18 +143,17 @@ export default function StatsScreen() {
         </Section>
       )}
 
-      {/* --- Low Confidence Nudge --- */}
       {lowConfidence.length > 0 && (
-        <Section title="Could use more comparisons">
-          <Text style={styles.nudgeText}>
-            These movies haven't been compared much — head to the Compare tab to refine their scores.
+        <Section title="Could use more comparisons" color={c.textMuted}>
+          <Text style={[styles.nudgeText, { color: c.textFaint }]}>
+            Head to the Compare tab to refine these scores.
           </Text>
           {lowConfidence.map((entry) => (
-            <View key={entry.movie.tmdb_id} style={styles.listRow}>
-              <Text style={styles.listTitle} numberOfLines={1}>
+            <View key={entry.movie.tmdb_id} style={[styles.listRow, { borderBottomColor: c.border }]}>
+              <Text style={[styles.listTitle, { color: c.textSoft }]} numberOfLines={1}>
                 {entry.movie.title}
               </Text>
-              <Text style={styles.listMeta}>
+              <Text style={[styles.listMeta, { color: c.textDim }]}>
                 {entry.compCount === 0
                   ? 'no comparisons yet'
                   : `${entry.compCount} comparison${entry.compCount !== 1 ? 's' : ''}`}
@@ -136,47 +166,48 @@ export default function StatsScreen() {
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({
+  title,
+  color,
+  children,
+}: {
+  title: string;
+  color: string;
+  children: React.ReactNode;
+}) {
   return (
     <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
+      <Text style={[styles.sectionTitle, { color }]}>{title}</Text>
       {children}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-    backgroundColor: '#000',
-  },
+  scroll: { flex: 1 },
   content: {
     paddingHorizontal: 20,
     paddingTop: 60,
     paddingBottom: 40,
   },
   screenTitle: {
-    color: '#fff',
     fontSize: 28,
     fontWeight: '700',
     marginBottom: 28,
   },
   emptyContainer: {
     flex: 1,
-    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 32,
   },
   emptyTitle: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 10,
     textAlign: 'center',
   },
   emptySubtext: {
-    color: '#64748b',
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,
@@ -185,7 +216,6 @@ const styles = StyleSheet.create({
     marginBottom: 32,
   },
   sectionTitle: {
-    color: '#94a3b8',
     fontSize: 12,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -199,17 +229,14 @@ const styles = StyleSheet.create({
   },
   genreLabel: {
     flex: 1,
-    color: '#e2e8f0',
     fontSize: 14,
   },
   genreScore: {
-    color: '#f59e0b',
     fontSize: 14,
     fontWeight: '600',
     marginRight: 4,
   },
   genreCount: {
-    color: '#475569',
     fontSize: 12,
   },
   listRow: {
@@ -218,22 +245,41 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 10,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#1e293b',
   },
   listTitle: {
     flex: 1,
-    color: '#e2e8f0',
     fontSize: 14,
     marginRight: 12,
   },
   listMeta: {
-    color: '#475569',
     fontSize: 12,
   },
   nudgeText: {
-    color: '#64748b',
     fontSize: 13,
     lineHeight: 19,
     marginBottom: 12,
+  },
+  rankRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    gap: 10,
+  },
+  rankNum: {
+    width: 28,
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'right',
+  },
+  rankTitle: {
+    flex: 1,
+    fontSize: 14,
+  },
+  rankScore: {
+    fontSize: 14,
+    fontWeight: '700',
+    minWidth: 32,
+    textAlign: 'right',
   },
 });

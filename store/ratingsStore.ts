@@ -3,6 +3,7 @@ import { Bucket, Comparison, Movie, Rating, RatingsMap } from '../types';
 import { loadPersistedState, savePersistedState } from './storage';
 import { buildGraph, getRankOrder } from '../utils/ranking';
 import { deriveScore } from '../utils/scoring';
+import { getMovieDetails } from '../services/tmdb';
 
 // Default score assigned when a movie is first rated, before any comparisons refine it
 const BUCKET_MIDPOINTS: Record<Exclude<Bucket, 'unseen'>, number> = {
@@ -43,6 +44,7 @@ type State = {
   comparisons: Comparison[];
   movies: Record<number, Movie>; // cached Movie objects for all rated movies
   onboardingComplete: boolean;
+  hydrated: boolean;
 };
 
 type Actions = {
@@ -51,6 +53,8 @@ type Actions = {
   removeRating: (movieId: number) => void;
   markOnboardingComplete: () => void;
   hydrate: () => Promise<void>;
+  backfillMovieCache: () => Promise<void>;
+  addMovieToCache: (movie: Movie) => void;
 };
 
 function persist(state: State): void {
@@ -67,6 +71,7 @@ export const useRatingsStore = create<State & Actions>((set, get) => ({
   comparisons: [],
   movies: {},
   onboardingComplete: false,
+  hydrated: false,
 
   rateMovie: (movie, bucket) => {
     const score = bucket === 'unseen' ? null : BUCKET_MIDPOINTS[bucket];
@@ -119,7 +124,43 @@ export const useRatingsStore = create<State & Actions>((set, get) => ({
         comparisons: saved.comparisons,
         movies: saved.movies ?? {},
         onboardingComplete: saved.onboardingComplete,
+        hydrated: true,
       });
+    } else {
+      set({ hydrated: true });
     }
+  },
+
+  addMovieToCache: (movie) => {
+    const next: State = { ...get(), movies: { ...get().movies, [movie.tmdb_id]: movie } };
+    set(next);
+    // Not persisted — ephemeral cache addition for detail view
+  },
+
+  backfillMovieCache: async () => {
+    const { ratings, movies } = get();
+    const missingIds = Object.keys(ratings)
+      .map(Number)
+      .filter((id) => !movies[id]);
+
+    if (missingIds.length === 0) return;
+
+    const fetched: Record<number, Movie> = {};
+    await Promise.allSettled(
+      missingIds.map(async (id) => {
+        try {
+          const movie = await getMovieDetails(id);
+          fetched[movie.tmdb_id] = movie;
+        } catch {
+          // skip if TMDB can't find it
+        }
+      })
+    );
+
+    if (Object.keys(fetched).length === 0) return;
+
+    const next: State = { ...get(), movies: { ...get().movies, ...fetched } };
+    set(next);
+    persist(next);
   },
 }));

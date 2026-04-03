@@ -11,10 +11,20 @@ export type PersistedState = {
 };
 
 export async function loadPersistedState(): Promise<PersistedState | null> {
-  const raw = await AsyncStorage.getItem(STORE_KEY);
-  return raw ? (JSON.parse(raw) as PersistedState) : null;
+  try {
+    const raw = await AsyncStorage.getItem(STORE_KEY);
+    return raw ? (JSON.parse(raw) as PersistedState) : null;
+  } catch {
+    // Storage unavailable or corrupted — start fresh
+    return null;
+  }
 }
 
 export async function savePersistedState(state: PersistedState): Promise<void> {
-  await AsyncStorage.setItem(STORE_KEY, JSON.stringify(state));
+  try {
+    await AsyncStorage.setItem(STORE_KEY, JSON.stringify(state));
+  } catch {
+    // Write failure is non-fatal — in-memory state remains correct
+    console.warn('Failed to persist state to AsyncStorage');
+  }
 }

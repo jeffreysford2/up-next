@@ -6,12 +6,8 @@ type Props = {
   translateY: SharedValue<number>;
 };
 
-// How many px of drag before the hint starts appearing
 const HINT_START = 30;
-// How many px of drag for full opacity
 const HINT_FULL = 100;
-// Y threshold that separates LIKE (above) from LOVE (below)
-const LOVE_Y_START = 60;
 
 function interpolateOpacity(value: number, start: number, full: number): number {
   'worklet';
@@ -22,7 +18,7 @@ function interpolateOpacity(value: number, start: number, full: number): number 
 export default function SwipeHintOverlay({ translateX, translateY }: Props) {
   const likeStyle = useAnimatedStyle(() => ({
     opacity:
-      translateX.value > HINT_START && translateY.value <= LOVE_Y_START
+      translateX.value > HINT_START
         ? interpolateOpacity(translateX.value, HINT_START, HINT_FULL)
         : 0,
   }));
@@ -36,33 +32,36 @@ export default function SwipeHintOverlay({ translateX, translateY }: Props) {
 
   const loveStyle = useAnimatedStyle(() => ({
     opacity:
-      translateX.value > HINT_START && translateY.value > LOVE_Y_START
-        ? interpolateOpacity(
-            Math.min(translateX.value, translateY.value),
-            HINT_START,
-            HINT_FULL
-          )
+      translateY.value < -HINT_START
+        ? interpolateOpacity(-translateY.value, HINT_START, HINT_FULL)
         : 0,
   }));
 
   const skipStyle = useAnimatedStyle(() => ({
     opacity:
-      translateY.value > HINT_START && translateX.value <= HINT_START
+      translateY.value > HINT_START
         ? interpolateOpacity(translateY.value, HINT_START, HINT_FULL)
         : 0,
   }));
 
   return (
     <View style={StyleSheet.absoluteFill} pointerEvents="none">
+      {/* LIKE — right swipe, top-left stamp */}
       <Animated.View style={[styles.hint, styles.likeHint, likeStyle]}>
         <Text style={[styles.hintText, styles.likeText]}>LIKE</Text>
       </Animated.View>
+
+      {/* NOPE — left swipe, top-right stamp */}
       <Animated.View style={[styles.hint, styles.nopeHint, nopeStyle]}>
         <Text style={[styles.hintText, styles.nopeText]}>NOPE</Text>
       </Animated.View>
+
+      {/* LOVE — up swipe, top-center */}
       <Animated.View style={[styles.hint, styles.loveHint, loveStyle]}>
         <Text style={[styles.hintText, styles.loveText]}>LOVE</Text>
       </Animated.View>
+
+      {/* SKIP — down swipe, bottom-center */}
       <Animated.View style={[styles.hint, styles.skipHint, skipStyle]}>
         <Text style={[styles.hintText, styles.skipText]}>SKIP</Text>
       </Animated.View>
@@ -73,15 +72,16 @@ export default function SwipeHintOverlay({ translateX, translateY }: Props) {
 const styles = StyleSheet.create({
   hint: {
     position: 'absolute',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     borderRadius: 8,
-    borderWidth: 3,
+    borderWidth: 4,
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   hintText: {
-    fontSize: 28,
-    fontWeight: '800',
-    letterSpacing: 2,
+    fontSize: 32,
+    fontWeight: '900',
+    letterSpacing: 3,
   },
   likeHint: {
     top: 40,
@@ -102,17 +102,18 @@ const styles = StyleSheet.create({
     color: '#ef4444',
   },
   loveHint: {
-    top: 40,
-    left: 20,
+    bottom: 60,
+    alignSelf: 'center',
+    left: '25%',
     borderColor: '#a855f7',
-    transform: [{ rotate: '-15deg' }],
   },
   loveText: {
     color: '#a855f7',
   },
   skipHint: {
-    bottom: 60,
+    top: 40,
     alignSelf: 'center',
+    left: '28%',
     borderColor: '#94a3b8',
   },
   skipText: {

@@ -22,7 +22,7 @@ const Y_THRESHOLD = 120;
 
 function getDirection(dx: number, dy: number): Bucket | null {
   'worklet';
-  if (dx > X_THRESHOLD && dy > Y_THRESHOLD) return 'loved';
+  if (dy < -Y_THRESHOLD) return 'loved';   // swipe UP = love
   if (dx > X_THRESHOLD) return 'liked';
   if (dx < -X_THRESHOLD) return 'disliked';
   if (dy > Y_THRESHOLD) return 'unseen';
@@ -32,9 +32,10 @@ function getDirection(dx: number, dy: number): Bucket | null {
 type Props = {
   movie: Movie;
   onSwiped: (movie: Movie, bucket: Bucket) => void;
+  onPress?: () => void;
 };
 
-export default function SwipeCard({ movie, onSwiped }: Props) {
+export default function SwipeCard({ movie, onSwiped, onPress }: Props) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
 
@@ -44,10 +45,15 @@ export default function SwipeCard({ movie, onSwiped }: Props) {
       translateY.value = e.translationY;
     })
     .onEnd((e) => {
+      const distance = Math.sqrt(e.translationX ** 2 + e.translationY ** 2);
+      if (distance < 15 && onPress) {
+        runOnJS(onPress)();
+        return;
+      }
       const dir = getDirection(e.translationX, e.translationY);
       if (dir !== null) {
         const targets: Record<Bucket, { x: number; y: number }> = {
-          loved: { x: SCREEN_WIDTH * 1.5, y: SCREEN_HEIGHT },
+          loved: { x: e.translationX, y: -SCREEN_HEIGHT * 1.5 },  // fly up
           liked: { x: SCREEN_WIDTH * 1.5, y: e.translationY },
           disliked: { x: -SCREEN_WIDTH * 1.5, y: e.translationY },
           unseen: { x: e.translationX, y: SCREEN_HEIGHT * 1.5 },

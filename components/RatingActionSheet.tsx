@@ -6,6 +6,7 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { Bucket, Movie } from '../types';
+import { useTheme } from '../hooks/useTheme';
 
 const BUCKETS: Array<{ bucket: Bucket; label: string; color: string }> = [
   { bucket: 'loved',    label: 'Loved it',        color: '#a855f7' },
@@ -23,6 +24,7 @@ type Props = {
 
 export default function RatingActionSheet({ visible, movie, onSelect, onDismiss }: Props) {
   const translateY = useSharedValue(400);
+  const c = useTheme();
 
   useEffect(() => {
     translateY.value = withTiming(visible ? 0 : 400, { duration: 280 });
@@ -42,22 +44,26 @@ export default function RatingActionSheet({ visible, movie, onSelect, onDismiss 
       onRequestClose={onDismiss}
     >
       <Pressable style={styles.backdrop} onPress={onDismiss} />
-      <Animated.View style={[styles.sheet, sheetStyle]}>
-        <View style={styles.handle} />
-        <Text style={styles.movieTitle} numberOfLines={1}>
+      <Animated.View style={[styles.sheet, { backgroundColor: c.surface }, sheetStyle]}>
+        <View style={[styles.handle, { backgroundColor: c.border }]} />
+        <Text style={[styles.movieTitle, { color: c.textMuted }]} numberOfLines={1}>
           {movie.title}
         </Text>
         {BUCKETS.map(({ bucket, label, color }) => (
           <Pressable
             key={bucket}
-            style={({ pressed }) => [styles.option, pressed && styles.optionPressed]}
+            style={({ pressed }) => [
+              styles.option,
+              { borderBottomColor: c.divider },
+              pressed && { opacity: 0.6 },
+            ]}
             onPress={() => onSelect(bucket)}
           >
             <Text style={[styles.optionText, { color }]}>{label}</Text>
           </Pressable>
         ))}
         <Pressable style={styles.cancelButton} onPress={onDismiss}>
-          <Text style={styles.cancelText}>Cancel</Text>
+          <Text style={[styles.cancelText, { color: c.textDim }]}>Cancel</Text>
         </Pressable>
       </Animated.View>
     </Modal>
@@ -70,7 +76,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(0,0,0,0.5)',
   },
   sheet: {
-    backgroundColor: '#1c1c1e',
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
     paddingBottom: 36,
@@ -79,14 +84,12 @@ const styles = StyleSheet.create({
   handle: {
     width: 40,
     height: 4,
-    backgroundColor: '#374151',
     borderRadius: 2,
     alignSelf: 'center',
     marginTop: 10,
     marginBottom: 16,
   },
   movieTitle: {
-    color: '#94a3b8',
     fontSize: 13,
     marginBottom: 16,
     textAlign: 'center',
@@ -94,10 +97,6 @@ const styles = StyleSheet.create({
   option: {
     paddingVertical: 16,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: '#2d2d2d',
-  },
-  optionPressed: {
-    opacity: 0.6,
   },
   optionText: {
     fontSize: 18,
@@ -109,7 +108,6 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   cancelText: {
-    color: '#475569',
     fontSize: 16,
     textAlign: 'center',
   },

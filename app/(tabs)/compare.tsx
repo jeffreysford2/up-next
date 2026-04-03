@@ -5,32 +5,39 @@ import { Movie } from '../../types';
 import { useRatingsStore } from '../../store/ratingsStore';
 import { pickNextPair, pairKey } from '../../utils/ranking';
 import CompareCard from '../../components/CompareCard';
+import { useTheme } from '../../hooks/useTheme';
 
 export default function CompareScreen() {
   const [currentPair, setCurrentPair] = useState<[Movie, Movie] | null>(null);
   const [allResolved, setAllResolved] = useState(false);
   const skippedRef = useRef(new Set<string>());
+  const c = useTheme();
 
   const computePair = useCallback(() => {
     const { ratings, comparisons, movies } = useRatingsStore.getState();
-    const pair = pickNextPair(ratings, comparisons, skippedRef.current);
 
-    if (!pair) {
-      setCurrentPair(null);
-      // Distinguish "no pairs left at all" from "only skipped pairs left"
-      const anyPair = pickNextPair(ratings, comparisons);
-      setAllResolved(!anyPair);
-      return;
+    // Walk candidate pairs until we find one where both movies are in cache.
+    // Movies rated before the cache was introduced won't be in the movies map,
+    // so we skip those pairs rather than silently showing the stale pair.
+    const excluded = new Set(skippedRef.current);
+
+    let pair = pickNextPair(ratings, comparisons, excluded);
+    while (pair) {
+      const movieA = movies[pair[0]];
+      const movieB = movies[pair[1]];
+      if (movieA && movieB) {
+        setCurrentPair([movieA, movieB]);
+        return;
+      }
+      excluded.add(pairKey(pair[0], pair[1]));
+      pair = pickNextPair(ratings, comparisons, excluded);
     }
 
-    const movieA = movies[pair[0]];
-    const movieB = movies[pair[1]];
-    if (movieA && movieB) {
-      setCurrentPair([movieA, movieB]);
-    }
+    setCurrentPair(null);
+    const anyPair = pickNextPair(ratings, comparisons);
+    setAllResolved(!anyPair);
   }, []);
 
-  // Recompute whenever this tab comes into focus
   useFocusEffect(
     useCallback(() => {
       skippedRef.current = new Set();
@@ -54,17 +61,15 @@ export default function CompareScreen() {
     computePair();
   };
 
-  // --- Empty states ---
-
   const ratedCount = Object.values(useRatingsStore.getState().ratings).filter(
     (r) => r.bucket !== 'unseen'
   ).length;
 
   if (ratedCount < 2) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.emptyTitle}>Nothing to compare yet</Text>
-        <Text style={styles.emptySubtext}>
+      <View style={[styles.container, { backgroundColor: c.bg }]}>
+        <Text style={[styles.emptyTitle, { color: c.text }]}>Nothing to compare yet</Text>
+        <Text style={[styles.emptySubtext, { color: c.textFaint }]}>
           Head to the Rate tab and rate at least two movies first.
         </Text>
       </View>
@@ -73,9 +78,9 @@ export default function CompareScreen() {
 
   if (!currentPair && allResolved) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.emptyTitle}>All caught up</Text>
-        <Text style={styles.emptySubtext}>
+      <View style={[styles.container, { backgroundColor: c.bg }]}>
+        <Text style={[styles.emptyTitle, { color: c.text }]}>All caught up</Text>
+        <Text style={[styles.emptySubtext, { color: c.textFaint }]}>
           Your rankings are fully up to date. Rate more movies to unlock new comparisons.
         </Text>
       </View>
@@ -84,8 +89,8 @@ export default function CompareScreen() {
 
   if (!currentPair) {
     return (
-      <View style={styles.container}>
-        <Text style={styles.emptySubtext}>Loading…</Text>
+      <View style={[styles.container, { backgroundColor: c.bg }]}>
+        <Text style={[styles.emptySubtext, { color: c.textFaint }]}>Loading…</Text>
       </View>
     );
   }
@@ -93,8 +98,8 @@ export default function CompareScreen() {
   const [movieA, movieB] = currentPair;
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.prompt}>Which did you like more?</Text>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
+      <Text style={[styles.prompt, { color: c.text }]}>Which did you like more?</Text>
 
       <View style={styles.row}>
         <CompareCard
@@ -108,7 +113,9 @@ export default function CompareScreen() {
       </View>
 
       <Pressable onPress={handleSkip} style={styles.skipButton}>
-        <Text style={styles.skipText}>Skip — I don't remember one of these</Text>
+        <Text style={[styles.skipText, { color: c.textDim }]}>
+          Skip — I don't remember one of these
+        </Text>
       </Pressable>
     </View>
   );
@@ -117,13 +124,11 @@ export default function CompareScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#000',
     alignItems: 'center',
     justifyContent: 'center',
     paddingHorizontal: 16,
   },
   prompt: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: '700',
     marginBottom: 24,
@@ -138,18 +143,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   skipText: {
-    color: '#475569',
     fontSize: 14,
   },
   emptyTitle: {
-    color: '#fff',
     fontSize: 20,
     fontWeight: '700',
     marginBottom: 10,
     textAlign: 'center',
   },
   emptySubtext: {
-    color: '#64748b',
     fontSize: 15,
     textAlign: 'center',
     lineHeight: 22,

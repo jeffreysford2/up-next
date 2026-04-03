@@ -22,9 +22,10 @@ type Props = {
   movie: Movie;
   onDismiss: () => void;
   onRatePress: () => void;
+  onPress?: () => void;
 };
 
-export default function DiscoverCard({ movie, onDismiss, onRatePress }: Props) {
+export default function DiscoverCard({ movie, onDismiss, onRatePress, onPress }: Props) {
   const translateX = useSharedValue(0);
   const translateY = useSharedValue(0);
 
@@ -35,6 +36,10 @@ export default function DiscoverCard({ movie, onDismiss, onRatePress }: Props) {
     })
     .onEnd((e) => {
       const distance = Math.sqrt(e.translationX ** 2 + e.translationY ** 2);
+      if (distance < 15 && onPress) {
+        runOnJS(onPress)();
+        return;
+      }
       if (distance > DISMISS_THRESHOLD) {
         // Fly off in the direction of the swipe
         const scale = SCREEN_WIDTH / Math.max(Math.abs(e.translationX), 1);
